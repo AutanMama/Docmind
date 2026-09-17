@@ -110,7 +110,7 @@ export default function App() {
   const chatActive = messages.length > 0;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[var(--bg)]">
+    <div className="h-dvh flex flex-col overflow-hidden bg-[var(--bg)]">
       <Header chatActive={chatActive} hasDoc={Boolean(doc)} onReset={reset} />
 
       <main className="flex-1 min-h-0">
