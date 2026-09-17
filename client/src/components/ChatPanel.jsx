@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Send, FileCheck2, Paperclip, Loader2, ShieldCheck, GraduationCap, FileText, User } from "lucide-react";
+import { Send, FileCheck2, Paperclip, Loader2, ShieldCheck, GraduationCap, FileText } from "lucide-react";
 import BrandMark from "./BrandMark";
 import MessageContent from "./MessageContent";
 import CopyButton from "./CopyButton";
@@ -11,21 +11,9 @@ const FEATURES = [
   { icon: FileText, title: "Any PDF", desc: "Attach one with the clip icon." },
 ];
 
-function Avatar({ role }) {
-  return role === "user" ? (
-    <div className="w-8 h-8 shrink-0 rounded-full bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center">
-      <User size={15} className="text-[var(--text-secondary)]" />
-    </div>
-  ) : (
-    <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[var(--accent)] to-indigo-500 flex items-center justify-center shadow-sm">
-      <BrandMark size={15} className="text-[var(--accent)]" />
-    </div>
-  );
-}
-
 function EmptyState() {
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center text-center px-5 py-4">
+    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center text-center px-5 pt-6 md:pt-12">
       <div className="w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-500 flex items-center justify-center shadow-md shadow-indigo-500/20 mb-3 md:mb-5">
         <BrandMark size={20} className="text-[var(--accent)]" />
       </div>
@@ -109,10 +97,6 @@ export default function ChatPanel({
 
   return (
     <div className="relative h-full flex flex-col overflow-hidden">
-      {/* Subtle decorative glow so the full-bleed layout doesn't feel bare */}
-      <div className="absolute top-0 left-1/3 w-96 h-96 bg-[var(--accent)]/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-400/5 rounded-full blur-[100px] pointer-events-none" />
-
       {doc && (
         <div className="relative flex items-center gap-2 px-4 md:px-8 py-3 border-b border-[var(--border)] bg-[var(--accent-soft)]">
           <FileCheck2 size={16} className="text-[var(--accent)]" />
@@ -126,34 +110,27 @@ export default function ChatPanel({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6"
+          className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6"
         >
-          <div className="max-w-3xl mx-auto space-y-5">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                <Avatar role={m.role} />
-                <div className={`flex flex-col max-w-[75%] ${m.role === "user" ? "items-end" : "items-start"}`}>
-                  <div
-                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${
-                      m.role === "user"
-                        ? "bg-[var(--accent)] text-white rounded-br-sm"
-                        : "bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm"
-                    }`}
-                  >
+          <div className="max-w-3xl mx-auto space-y-4">
+            {messages.map((m, i) =>
+              m.role === "user" ? (
+                <div key={i} className="flex flex-col items-end">
+                  <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[var(--accent)] text-white text-sm leading-relaxed whitespace-pre-wrap">
                     <MessageContent text={m.displayText} />
                   </div>
-                  <CopyButton text={m.text} align={m.role === "user" ? "right" : "left"} />
+                  <CopyButton text={m.text} align="right" />
                 </div>
-              </div>
-            ))}
-            {asking && (
-              <div className="flex gap-3">
-                <Avatar role="assistant" />
-                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl rounded-bl-sm shadow-sm">
-                  <TypingDots />
+              ) : (
+                <div key={i} className="flex flex-col items-start w-full">
+                  <div className="w-full text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-primary)]">
+                    <MessageContent text={m.displayText} />
+                  </div>
+                  <CopyButton text={m.text} align="left" />
                 </div>
-              </div>
+              )
             )}
+            {asking && <TypingDots />}
           </div>
         </div>
       )}
