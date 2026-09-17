@@ -1,13 +1,14 @@
-import { FileText, X } from "lucide-react";
+import { X } from "lucide-react";
+import BrandMark from "./BrandMark";
 
 export default function Header({ chatActive, hasDoc, onReset }) {
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--surface)] px-6 py-4 flex items-center justify-between">
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center">
-          <FileText size={17} className="text-white" />
+    <header className="border-b border-[var(--border)] bg-[var(--surface)] px-4 md:px-6 py-2.5 md:py-4 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center">
+          <BrandMark size={15} className="text-[var(--accent)]" />
         </div>
-        <span className="font-bold text-lg tracking-tight">DocMind</span>
+        <span className="font-bold text-base md:text-lg tracking-tight">DocMind</span>
       </div>
       {chatActive && (
         <button

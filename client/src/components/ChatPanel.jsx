@@ -1,23 +1,14 @@
 import { useEffect, useRef } from "react";
-import {
-  Send,
-  FileCheck2,
-  Paperclip,
-  Loader2,
-  ShieldCheck,
-  GraduationCap,
-  FileText,
-  Sparkles,
-  User,
-} from "lucide-react";
+import { Send, FileCheck2, Paperclip, Loader2, ShieldCheck, GraduationCap, FileText, User } from "lucide-react";
+import BrandMark from "./BrandMark";
 import MessageContent from "./MessageContent";
 import CopyButton from "./CopyButton";
 import TypingDots from "./TypingDots";
 
 const FEATURES = [
-  { icon: ShieldCheck, title: "Grounded", desc: "Facts come straight from your document, never guessed." },
-  { icon: GraduationCap, title: "Explains", desc: "Ask it to teach a concept and it will, with real examples." },
-  { icon: FileText, title: "Any PDF", desc: "Attach one anytime with the clip icon below." },
+  { icon: ShieldCheck, title: "Grounded", desc: "Facts come straight from your document." },
+  { icon: GraduationCap, title: "Explains", desc: "Teaches concepts with real examples." },
+  { icon: FileText, title: "Any PDF", desc: "Attach one with the clip icon." },
 ];
 
 function Avatar({ role }) {
@@ -26,31 +17,31 @@ function Avatar({ role }) {
       <User size={15} className="text-[var(--text-secondary)]" />
     </div>
   ) : (
-    <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[var(--accent)] to-indigo-400 flex items-center justify-center shadow-sm">
-      <Sparkles size={14} className="text-white" />
+    <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[var(--accent)] to-indigo-500 flex items-center justify-center shadow-sm">
+      <BrandMark size={15} className="text-[var(--accent)]" />
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-5">
-        <Sparkles size={26} className="text-white" />
+    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center text-center px-5 py-4">
+      <div className="w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-500 flex items-center justify-center shadow-md shadow-indigo-500/20 mb-3 md:mb-5">
+        <BrandMark size={20} className="text-[var(--accent)]" />
       </div>
-      <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Ask me anything</h1>
-      <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-8">
-        Chat freely, or attach a PDF with the clip icon below to get answers grounded in that specific document.
+      <h1 className="text-lg md:text-3xl font-bold tracking-tight mb-1.5 md:mb-2">Ask me anything</h1>
+      <p className="text-xs md:text-sm text-[var(--text-secondary)] max-w-sm mb-4 md:mb-8">
+        Chat freely, or attach a PDF to get answers grounded in that document.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-md text-left">
+      <div className="grid grid-cols-3 gap-2 md:gap-3 w-full max-w-md text-left">
         {FEATURES.map(({ icon: Icon, title, desc }) => (
           <div
             key={title}
-            className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors"
+            className="p-2 md:p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors"
           >
-            <Icon size={16} className="text-[var(--accent)] mb-1.5" />
-            <p className="text-xs font-semibold mb-0.5">{title}</p>
-            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">{desc}</p>
+            <Icon size={14} className="text-[var(--accent)] mb-1 md:mb-1.5" />
+            <p className="text-[11px] md:text-xs font-semibold mb-0.5">{title}</p>
+            <p className="hidden md:block text-[11px] text-[var(--text-muted)] leading-relaxed">{desc}</p>
           </div>
         ))}
       </div>
@@ -135,7 +126,7 @@ export default function ChatPanel({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-y-auto px-4 md:px-8 py-6"
+          className="relative flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6"
         >
           <div className="max-w-3xl mx-auto space-y-5">
             {messages.map((m, i) => (
