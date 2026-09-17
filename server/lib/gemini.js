@@ -71,18 +71,36 @@ function cleanAnswer(text) {
     .trim();
 }
 
+const STYLE_RULES = `Answer directly like a knowledgeable person would in a text message — no "Based on the document" preamble, no markdown formatting in your prose (no **, no bullet points, no headers), just plain, natural sentences. The one exception is actual code: when explaining or teaching code, or when asked for an example, write real code in a fenced code block (triple backticks with the language name) so it's clearly distinguishable from prose — don't just describe code in words when showing it would teach better.`;
+
 export async function askGemini(question, { fullText, chunks } = {}) {
+  const hasDocument = Boolean(fullText || (chunks && chunks.length));
+
+  if (!hasDocument) {
+    // No document uploaded yet — general chat so people aren't stuck at a
+    // blank screen, but it should nudge toward the actual point of the app.
+    const prompt = `You're DocMind, a helpful assistant. No document has been uploaded yet, so just chat normally and answer whatever's asked using your own knowledge. If it feels natural, you can mention that uploading a PDF lets you answer questions grounded in that specific document, but don't force that into every reply — only when it's actually relevant (e.g. they ask about a document, or ask what you can do).
+
+${STYLE_RULES}
+
+Question: ${question}
+
+Answer:`;
+    return generateWithFallback(prompt);
+  }
+
   const context = fullText
     ? fullText
     : chunks.map((c, i) => `[Excerpt ${i + 1}]\n${c.text}`).join("\n\n");
 
   const prompt = `You're an assistant answering questions about a document on someone's behalf. You are NOT the person or subject described in the document — never say "I" as if you were them (e.g. never say "I have 5 years of experience" or "I know how to code"). Refer to whoever the document is about in the third person, by name if it's known, or "the document's subject" if not. If the person asks something about themselves ("do I have...", "what's my..."), still describe it in third person about the document's content, not as your own claim.
 
-There are two different kinds of questions, and they need different treatment:
+There are three different kinds of messages, and they need different treatment:
 1. Facts specifically about the document or its subject (dates, names, figures, what it says or doesn't say) — stay strictly grounded in the text below. If it's not there, say so plainly instead of guessing.
 2. Requests to explain, teach, or elaborate on a concept, technology, or topic the document mentions (e.g. "explain how this works", "what is Comparator", "teach me this") — for these, use your full general knowledge to actually explain properly, using the document as context for what specifically to explain. Don't refuse these just because the deep explanation itself isn't written out in the document — that's the whole point of asking.
+3. Casual remarks, greetings, or reactions that aren't really questions at all (e.g. "wow that was fast", "hi", "thanks", typos/small talk with no real query in them) — just respond briefly and naturally like a person would react to that comment. Don't force these into a document summary or a generic "ask me anything" filler line — actually react to what they said.
 
-Answer directly like a knowledgeable person would in a text message — no "Based on the document" preamble, no markdown formatting in your prose (no **, no bullet points, no headers), just plain, natural sentences. The one exception is actual code: when explaining or teaching code, or when asked for an example, write real code in a fenced code block (triple backticks with the language name) so it's clearly distinguishable from prose — don't just describe code in words when showing it would teach better.
+${STYLE_RULES}
 
 DOCUMENT:
 ${context}

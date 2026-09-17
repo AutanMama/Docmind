@@ -50,7 +50,14 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 app.post("/api/ask", async (req, res) => {
   try {
     const { docId, question } = req.body;
-    if (!docId || !question) return res.status(400).json({ error: "docId and question are required" });
+    if (!question) return res.status(400).json({ error: "question is required" });
+
+    // No document yet — general chat mode, so people aren't stuck at a
+    // blank screen before they've uploaded anything.
+    if (!docId) {
+      const answer = await askGemini(question, {});
+      return res.json({ answer, sources: [] });
+    }
 
     const doc = getDocument(docId);
     if (!doc) return res.status(404).json({ error: "Document not found — upload it again" });
