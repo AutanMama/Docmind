@@ -6,6 +6,7 @@ import { FileText, Upload, Send, Loader2, X, FileCheck2 } from "lucide-react";
 // the deployed backend's URL — client and server are separate deployments
 // with no proxy between them.
 const API_URL = import.meta.env.VITE_API_URL || "";
+if (!API_URL) console.warn("VITE_API_URL is not set — API calls will hit this same domain and fail in production.");
 
 export default function App() {
   const [doc, setDoc] = useState(null); // { docId, fileName, chunkCount }
