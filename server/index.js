@@ -49,13 +49,13 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 
 app.post("/api/ask", async (req, res) => {
   try {
-    const { docId, question } = req.body;
+    const { docId, question, history } = req.body;
     if (!question) return res.status(400).json({ error: "question is required" });
 
     // No document yet — general chat mode, so people aren't stuck at a
     // blank screen before they've uploaded anything.
     if (!docId) {
-      const answer = await askGemini(question, {});
+      const answer = await askGemini(question, { history });
       return res.json({ answer, sources: [] });
     }
 
@@ -63,13 +63,13 @@ app.post("/api/ask", async (req, res) => {
     if (!doc) return res.status(404).json({ error: "Document not found — upload it again" });
 
     if (doc.fullText) {
-      const answer = await askGemini(question, { fullText: doc.fullText });
+      const answer = await askGemini(question, { fullText: doc.fullText, history });
       return res.json({ answer, sources: [] });
     }
 
     const queryEmbedding = await embedText(question);
     const matches = topMatches(docId, queryEmbedding);
-    const answer = await askGemini(question, { chunks: matches });
+    const answer = await askGemini(question, { chunks: matches, history });
 
     res.json({ answer, sources: matches.map((m) => ({ text: m.text, score: m.score })) });
   } catch (err) {

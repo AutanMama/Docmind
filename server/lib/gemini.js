@@ -17,6 +17,11 @@ const CHAT_MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"];
 // noticeably without hurting accuracy here.
 const GENERATION_CONFIG = { thinkingConfig: { thinkingBudget: 0 } };
 
+// Only the last N turns are sent back to the model each time — enough for
+// real conversational continuity without the request growing unbounded as
+// a chat gets long.
+const MAX_HISTORY_TURNS = 12;
+
 export async function embedText(text) {
   const result = await embeddingModel.embedContent(text);
   return result.embedding.values;
@@ -30,7 +35,7 @@ export async function embedBatch(texts) {
   return vectors;
 }
 
-async function generateWithFallback(prompt) {
+async function generateWithFallback(systemInstruction, contents) {
   let lastErr;
   for (const modelName of CHAT_MODELS) {
     // Not every model accepts thinkingConfig (some reject it with a 400) —
@@ -38,8 +43,8 @@ async function generateWithFallback(prompt) {
     // giving up on it entirely.
     for (const generationConfig of [GENERATION_CONFIG, undefined]) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName, generationConfig });
-        const result = await model.generateContent(prompt);
+        const model = genAI.getGenerativeModel({ model: modelName, systemInstruction, generationConfig });
+        const result = await model.generateContent({ contents });
         return cleanAnswer(result.response.text());
       } catch (err) {
         console.error(`[gemini] ${modelName}${generationConfig ? "" : " (no thinkingConfig)"} failed (${err.status ?? "network"})`);
@@ -73,27 +78,37 @@ function cleanAnswer(text) {
 
 const STYLE_RULES = `Answer directly like a knowledgeable person would in a text message — no "Based on the document" preamble, no markdown formatting in your prose (no **, no bullet points, no headers), just plain, natural sentences. The one exception is actual code: when explaining or teaching code, or when asked for an example, write real code in a fenced code block (triple backticks with the language name) so it's clearly distinguishable from prose — don't just describe code in words when showing it would teach better.`;
 
-export async function askGemini(question, { fullText, chunks } = {}) {
+// Gemini's chat turns use role "user" or "model" (not "assistant").
+function toContents(history, question) {
+  const trimmed = (history || []).slice(-MAX_HISTORY_TURNS);
+  const turns = trimmed.map((m) => ({
+    role: m.role === "user" ? "user" : "model",
+    parts: [{ text: m.text }],
+  }));
+  turns.push({ role: "user", parts: [{ text: question }] });
+  return turns;
+}
+
+export async function askGemini(question, { fullText, chunks, history } = {}) {
   const hasDocument = Boolean(fullText || (chunks && chunks.length));
+  const contents = toContents(history, question);
 
   if (!hasDocument) {
     // No document uploaded yet — general chat so people aren't stuck at a
     // blank screen, but it should nudge toward the actual point of the app.
-    const prompt = `You're DocMind, a helpful assistant. No document has been uploaded yet, so just chat normally and answer whatever's asked using your own knowledge. If it feels natural, you can mention that uploading a PDF lets you answer questions grounded in that specific document, but don't force that into every reply — only when it's actually relevant (e.g. they ask about a document, or ask what you can do).
+    const systemInstruction = `You're DocMind, a helpful assistant having an ongoing conversation. No document has been uploaded yet, so just chat normally and answer whatever's asked using your own knowledge, remembering what's already been said earlier in this conversation. If it feels natural, you can mention that uploading a PDF lets you answer questions grounded in that specific document, but don't force that into every reply — only when it's actually relevant (e.g. they ask about a document, or ask what you can do).
 
-${STYLE_RULES}
-
-Question: ${question}
-
-Answer:`;
-    return generateWithFallback(prompt);
+${STYLE_RULES}`;
+    return generateWithFallback(systemInstruction, contents);
   }
 
   const context = fullText
     ? fullText
     : chunks.map((c, i) => `[Excerpt ${i + 1}]\n${c.text}`).join("\n\n");
 
-  const prompt = `You're an assistant answering questions about a document on someone's behalf. You are NOT the person or subject described in the document — never say "I" as if you were them (e.g. never say "I have 5 years of experience" or "I know how to code"). Refer to whoever the document is about in the third person, by name if it's known, or "the document's subject" if not. If the person asks something about themselves ("do I have...", "what's my..."), still describe it in third person about the document's content, not as your own claim.
+  const systemInstruction = `You're an assistant having an ongoing conversation about a document on someone's behalf. You are NOT the person or subject described in the document — never say "I" as if you were them (e.g. never say "I have 5 years of experience" or "I know how to code"). Refer to whoever the document is about in the third person, by name if it's known, or "the document's subject" if not. If the person asks something about themselves ("do I have...", "what's my..."), still describe it in third person about the document's content, not as your own claim.
+
+Remember what's already been discussed earlier in this conversation — if someone says "are you sure?" or "why?" or refers back to something without repeating it, they mean the thing you just said, not a fresh unrelated question.
 
 There are three different kinds of messages, and they need different treatment:
 1. Facts specifically about the document or its subject (dates, names, figures, what it says or doesn't say) — stay strictly grounded in the text below. If it's not there, say so plainly instead of guessing.
@@ -103,11 +118,7 @@ There are three different kinds of messages, and they need different treatment:
 ${STYLE_RULES}
 
 DOCUMENT:
-${context}
+${context}`;
 
-Question: ${question}
-
-Answer:`;
-
-  return generateWithFallback(prompt);
+  return generateWithFallback(systemInstruction, contents);
 }

@@ -83,10 +83,13 @@ export default function App() {
     setAsking(true);
 
     try {
+      // Send prior turns along so the model has conversational memory
+      // (e.g. "are you sure?" needs to know what it's referring back to).
+      const history = messages.map((m) => ({ role: m.role, text: m.text }));
       const res = await fetch(`${API_URL}/api/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docId: doc?.docId, question: q }),
+        body: JSON.stringify({ docId: doc?.docId, question: q, history }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
