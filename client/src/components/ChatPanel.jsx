@@ -11,7 +11,14 @@ const FEATURES = [
   { icon: FileText, title: "Any PDF", desc: "Attach one with the clip icon." },
 ];
 
-function EmptyState() {
+const PROMPT_TIPS = [
+  "What can you help me with?",
+  "Explain a concept from my document",
+  "Summarize what's in this PDF",
+  "Write example code for this",
+];
+
+function EmptyState({ onTipClick }) {
   return (
     <div className="flex flex-col items-center text-center px-5 pt-6 pb-4 md:pt-12">
       <div className="w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-indigo-500 flex items-center justify-center shadow-md shadow-indigo-500/20 mb-3 md:mb-5">
@@ -21,7 +28,7 @@ function EmptyState() {
       <p className="text-xs md:text-sm text-[var(--text-secondary)] max-w-sm mb-4 md:mb-8">
         Chat freely, or attach a PDF to get answers grounded in that document.
       </p>
-      <div className="grid grid-cols-3 gap-2 md:gap-3 w-full max-w-md text-left">
+      <div className="grid grid-cols-3 gap-2 md:gap-3 w-full max-w-md text-left mb-5 md:mb-8">
         {FEATURES.map(({ icon: Icon, title, desc }) => (
           <div
             key={title}
@@ -31,6 +38,21 @@ function EmptyState() {
             <p className="text-[11px] md:text-xs font-semibold mb-0.5">{title}</p>
             <p className="hidden md:block text-[11px] text-[var(--text-muted)] leading-relaxed">{desc}</p>
           </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+        Try asking
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
+        {PROMPT_TIPS.map((tip) => (
+          <button
+            key={tip}
+            onClick={() => onTipClick(tip)}
+            className="px-3 py-1.5 rounded-full text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+          >
+            {tip}
+          </button>
         ))}
       </div>
     </div>
@@ -105,7 +127,12 @@ export default function ChatPanel({
       )}
 
       {messages.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          onTipClick={(tip) => {
+            setQuestion(tip);
+            textareaRef.current?.focus();
+          }}
+        />
       ) : (
         <div
           ref={scrollContainerRef}
