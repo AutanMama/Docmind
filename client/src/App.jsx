@@ -16,11 +16,6 @@ export default function App() {
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const fileInputRef = useRef(null);
-  const bottomRef = useRef(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, asking]);
 
   // Reveals the most recent assistant message a few characters at a time so
   // it reads like it's being typed, instead of the full answer appearing
@@ -112,10 +107,10 @@ export default function App() {
   const chatActive = messages.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden bg-[var(--bg)]">
       <Header chatActive={chatActive} hasDoc={Boolean(doc)} onReset={reset} />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main className="flex-1 min-h-0">
         <ChatPanel
           doc={doc}
           messages={messages}
@@ -127,7 +122,6 @@ export default function App() {
           onAsk={handleAsk}
           onFileSelect={handleFile}
           fileInputRef={fileInputRef}
-          bottomRef={bottomRef}
         />
       </main>
     </div>
