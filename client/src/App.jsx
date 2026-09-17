@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Upload, Send, Loader2, X, FileCheck2 } from "lucide-react";
 
 // In local dev this is empty and requests go through Vite's proxy (see
@@ -6,16 +6,94 @@ import { FileText, Upload, Send, Loader2, X, FileCheck2 } from "lucide-react";
 // the deployed backend's URL — client and server are separate deployments
 // with no proxy between them.
 const API_URL = import.meta.env.VITE_API_URL || "";
-if (!API_URL) console.warn("VITE_API_URL is not set — API calls will hit this same domain and fail in production.");
+
+// Splits a message into alternating prose/code segments so fenced code
+// blocks (```lang ... ```) render as a real monospace block instead of
+// plain wrapped text with literal backticks in it.
+function parseContent(text) {
+  const segments = [];
+  const regex = /```(\w*)\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text))) {
+    if (match.index > lastIndex) segments.push({ type: "text", content: text.slice(lastIndex, match.index) });
+    segments.push({ type: "code", lang: match[1], content: match[2].replace(/\n$/, "") });
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) segments.push({ type: "text", content: text.slice(lastIndex) });
+  return segments;
+}
+
+function MessageContent({ text }) {
+  return parseContent(text).map((seg, i) =>
+    seg.type === "code" ? (
+      <pre key={i} className="my-2 p-3 rounded-lg bg-[#0f172a] text-[#e2e8f0] text-xs overflow-x-auto">
+        <code>{seg.content}</code>
+      </pre>
+    ) : (
+      <span key={i}>{seg.content}</span>
+    )
+  );
+}
+
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 px-1 py-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-bounce"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function App() {
   const [doc, setDoc] = useState(null); // { docId, fileName, chunkCount }
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [messages, setMessages] = useState([]); // { role: 'user'|'assistant', text }
+  const [messages, setMessages] = useState([]); // { role, text, displayText?, typing? }
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const fileInputRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, asking]);
+
+  // Reveals the most recent assistant message a few characters at a time so
+  // it reads like it's being typed, instead of the full answer appearing
+  // all at once after the request resolves.
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant" || !last.typing) return;
+
+    const interval = setInterval(() => {
+      setMessages((prev) => {
+        const msgs = [...prev];
+        const target = msgs[msgs.length - 1];
+        if (!target || !target.typing) return prev;
+
+        const nextLength = Math.min(target.displayText.length + 3, target.text.length);
+        const done = nextLength >= target.text.length;
+        msgs[msgs.length - 1] = {
+          ...target,
+          displayText: target.text.slice(0, nextLength),
+          typing: !done,
+        };
+        return msgs;
+      });
+    }, 12);
+
+    return () => clearInterval(interval);
+  }, [messages]);
+
+  const addTypedMessage = (text) => {
+    setMessages((m) => [...m, { role: "assistant", text, displayText: "", typing: true }]);
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -34,9 +112,8 @@ export default function App() {
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
       setDoc(data);
-      setMessages([
-        { role: "assistant", text: `I've read "${data.fileName}" (${data.chunkCount} sections). Ask me anything about it.` },
-      ]);
+      setMessages([]);
+      addTypedMessage(`I've read "${data.fileName}" (${data.chunkCount} sections). Ask me anything about it.`);
     } catch (err) {
       setUploadError(err.message);
     } finally {
@@ -49,7 +126,7 @@ export default function App() {
     if (!question.trim() || !doc || asking) return;
 
     const q = question.trim();
-    setMessages((m) => [...m, { role: "user", text: q }]);
+    setMessages((m) => [...m, { role: "user", text: q, displayText: q }]);
     setQuestion("");
     setAsking(true);
 
@@ -61,9 +138,9 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
-      setMessages((m) => [...m, { role: "assistant", text: data.answer }]);
+      addTypedMessage(data.answer);
     } catch (err) {
-      setMessages((m) => [...m, { role: "assistant", text: `Error: ${err.message}` }]);
+      addTypedMessage(`Error: ${err.message}`);
     } finally {
       setAsking(false);
     }
@@ -145,17 +222,18 @@ export default function App() {
                         : "bg-[var(--bg)] text-[var(--text-primary)] rounded-bl-sm"
                     }`}
                   >
-                    {m.text}
+                    <MessageContent text={m.displayText} />
                   </div>
                 </div>
               ))}
               {asking && (
                 <div className="flex justify-start">
-                  <div className="bg-[var(--bg)] px-4 py-2.5 rounded-2xl rounded-bl-sm">
-                    <Loader2 size={16} className="animate-spin text-[var(--text-muted)]" />
+                  <div className="bg-[var(--bg)] rounded-2xl rounded-bl-sm">
+                    <TypingDots />
                   </div>
                 </div>
               )}
+              <div ref={bottomRef} />
             </div>
 
             <form onSubmit={handleAsk} className="flex items-center gap-2 p-3 border-t border-[var(--border)]">
