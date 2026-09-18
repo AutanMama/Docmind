@@ -149,41 +149,36 @@ export default function App() {
     if (id === chatId) reset();
   };
 
-  const chatActive = messages.length > 0;
-
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-[var(--bg)]">
-      <Header
-        chatActive={chatActive}
-        hasDoc={Boolean(doc)}
-        onReset={reset}
-        onToggleHistory={() => setHistoryOpen((v) => !v)}
-      />
+      <Header onToggleHistory={() => setHistoryOpen((v) => !v)} />
 
-      <HistorySidebar
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        chats={chats}
-        activeChatId={chatId}
-        onSelectChat={handleSelectChat}
-        onNewChat={reset}
-        onDeleteChat={handleDeleteChat}
-      />
-
-      <main className="flex-1 min-h-0">
-        <ChatPanel
-          doc={doc}
-          messages={messages}
-          asking={asking}
-          uploading={uploading}
-          uploadError={uploadError}
-          question={question}
-          setQuestion={setQuestion}
-          onAsk={handleAsk}
-          onFileSelect={handleFile}
-          fileInputRef={fileInputRef}
+      <div className="flex-1 flex min-h-0">
+        <HistorySidebar
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          chats={chats}
+          activeChatId={chatId}
+          onSelectChat={handleSelectChat}
+          onNewChat={reset}
+          onDeleteChat={handleDeleteChat}
         />
-      </main>
+
+        <main className="flex-1 min-h-0">
+          <ChatPanel
+            doc={doc}
+            messages={messages}
+            asking={asking}
+            uploading={uploading}
+            uploadError={uploadError}
+            question={question}
+            setQuestion={setQuestion}
+            onAsk={handleAsk}
+            onFileSelect={handleFile}
+            fileInputRef={fileInputRef}
+          />
+        </main>
+      </div>
     </div>
   );
 }
