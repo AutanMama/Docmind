@@ -42,8 +42,8 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 
     res.json({ docId, fileName: req.file.originalname, chunkCount: chunks.length });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to process document" });
+    console.error("[upload] failed:", err);
+    res.status(500).json({ error: `Failed to process document: ${err.message}` });
   }
 });
 

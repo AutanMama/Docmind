@@ -27,11 +27,23 @@ export async function embedText(text) {
   return result.embedding.values;
 }
 
+// Large documents (a 90+ page PDF, say) can chunk into 150+ pieces — calling
+// the embedding API one at a time for each would take minutes and is likely
+// to time out before it finishes. Run a bounded number in parallel instead.
+const EMBED_CONCURRENCY = 8;
+
 export async function embedBatch(texts) {
-  const vectors = [];
-  for (const text of texts) {
-    vectors.push(await embedText(text));
+  const vectors = new Array(texts.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < texts.length) {
+      const i = nextIndex++;
+      vectors[i] = await embedText(texts[i]);
+    }
   }
+
+  await Promise.all(Array.from({ length: Math.min(EMBED_CONCURRENCY, texts.length) }, worker));
   return vectors;
 }
 
