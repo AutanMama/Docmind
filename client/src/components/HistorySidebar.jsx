@@ -1,4 +1,4 @@
-import { SquarePen, Trash2, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { SquarePen, Trash2, MessageSquare, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 export default function HistorySidebar({ open, onClose, onOpen, chats, activeChatId, onSelectChat, onNewChat, onDeleteChat }) {
   return (
@@ -7,7 +7,7 @@ export default function HistorySidebar({ open, onClose, onOpen, chats, activeCha
       {open && <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={onClose} />}
 
       <aside
-        className={`relative group/sidebar fixed md:static inset-y-0 left-0 z-50 md:z-auto h-full bg-[#f1f2f6] border-r border-[var(--border)] overflow-hidden shrink-0 transition-[width,transform] duration-200 ${
+        className={`group/sidebar fixed md:relative inset-y-0 left-0 z-50 md:z-auto h-full bg-[#f1f2f6] border-r border-[var(--border)] overflow-hidden shrink-0 transition-[width,transform] duration-200 ${
           open ? "w-72 max-w-[80%] translate-x-0" : "w-72 max-w-[80%] -translate-x-full md:w-0 md:translate-x-0"
         }`}
       >
@@ -20,6 +20,16 @@ export default function HistorySidebar({ open, onClose, onOpen, chats, activeCha
             >
               <SquarePen size={16} />
               New chat
+            </button>
+            {/* Always-visible close button — the hover-reveal collapse arrow
+                doesn't work on touch devices, and even on desktop it's easy
+                to miss if you don't already know it's there. */}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg text-[var(--text-secondary)] hover:bg-black/5 transition-colors"
+              aria-label="Close history"
+            >
+              <X size={16} />
             </button>
           </div>
 
