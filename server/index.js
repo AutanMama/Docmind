@@ -94,3 +94,15 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 5051;
 app.listen(PORT, () => console.log(`DocMind API running on http://localhost:${PORT}`));
+
+// Render's free tier sleeps this service after ~15 minutes with no incoming
+// traffic. Pinging our own public URL every 10 minutes counts as real
+// traffic (it's a genuine round trip out to the internet and back), so this
+// keeps the service awake without needing an external uptime monitor.
+// RENDER_EXTERNAL_URL is set automatically by Render — nothing to configure.
+// This is a no-op locally and on any host that doesn't set that variable.
+if (process.env.RENDER_EXTERNAL_URL) {
+  setInterval(() => {
+    fetch(`${process.env.RENDER_EXTERNAL_URL}/api/health`).catch(() => {});
+  }, 10 * 60 * 1000);
+}
