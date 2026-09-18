@@ -44,8 +44,8 @@ export default function App() {
     return () => clearInterval(interval);
   }, [messages]);
 
-  const addTypedMessage = (text) => {
-    setMessages((m) => [...m, { role: "assistant", text, displayText: "", typing: true }]);
+  const addTypedMessage = (text, isError = false) => {
+    setMessages((m) => [...m, { role: "assistant", text, displayText: "", typing: true, isError }]);
   };
 
   const handleFile = async (file) => {
@@ -85,7 +85,10 @@ export default function App() {
     try {
       // Send prior turns along so the model has conversational memory
       // (e.g. "are you sure?" needs to know what it's referring back to).
-      const history = messages.map((m) => ({ role: m.role, text: m.text }));
+      // Failed exchanges are excluded — otherwise a network hiccup shows up
+      // in the model's memory as a real reply, and it starts reacting to
+      // "Error: Failed to fetch" as if it were something you actually said.
+      const history = messages.filter((m) => !m.isError).map((m) => ({ role: m.role, text: m.text }));
       const res = await fetch(`${API_URL}/api/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,7 +98,7 @@ export default function App() {
       if (!res.ok) throw new Error(data.error || "Something went wrong");
       addTypedMessage(data.answer);
     } catch (err) {
-      addTypedMessage(`Error: ${err.message}`);
+      addTypedMessage(`Sorry, that didn't go through: ${err.message}. Try sending it again.`, true);
     } finally {
       setAsking(false);
     }
