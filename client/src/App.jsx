@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header";
 import ChatPanel from "./components/ChatPanel";
+import HistorySidebar from "./components/HistorySidebar";
+import { getAllChats, saveChat, deleteChat } from "./utils/chatStorage";
 
 // In local dev this is empty and requests go through Vite's proxy (see
 // vite.config.js) to localhost:5051. In production, set VITE_API_URL to
@@ -8,7 +10,15 @@ import ChatPanel from "./components/ChatPanel";
 // with no proxy between them.
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+function newChatId() {
+  return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+}
+
 export default function App() {
+  const [chatId, setChatId] = useState(newChatId);
+  const [chats, setChats] = useState(getAllChats);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   const [doc, setDoc] = useState(null); // { docId, fileName, chunkCount }
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -43,6 +53,14 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [messages]);
+
+  // Persist this conversation to localStorage any time it changes, so it
+  // shows up in the history sidebar and survives a page refresh.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    saveChat(chatId, messages, doc?.fileName);
+    setChats(getAllChats());
+  }, [messages, chatId, doc?.fileName]);
 
   const addTypedMessage = (text, isError = false) => {
     setMessages((m) => [...m, { role: "assistant", text, displayText: "", typing: true, isError }]);
@@ -105,16 +123,52 @@ export default function App() {
   };
 
   const reset = () => {
+    setChatId(newChatId());
     setDoc(null);
     setMessages([]);
     setUploadError("");
+    setHistoryOpen(false);
+  };
+
+  const handleSelectChat = (id) => {
+    const chat = chats.find((c) => c.id === id);
+    if (!chat) return;
+    setChatId(id);
+    setMessages(chat.messages.map((m) => ({ ...m, displayText: m.text, typing: false })));
+    // The original document isn't recoverable after a server restart (it's
+    // only kept in memory) — resuming here continues the conversation in
+    // general-chat mode. Reattach the PDF to make it grounded again.
+    setDoc(null);
+    setUploadError("");
+    setHistoryOpen(false);
+  };
+
+  const handleDeleteChat = (id) => {
+    deleteChat(id);
+    setChats(getAllChats());
+    if (id === chatId) reset();
   };
 
   const chatActive = messages.length > 0;
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-[var(--bg)]">
-      <Header chatActive={chatActive} hasDoc={Boolean(doc)} onReset={reset} />
+      <Header
+        chatActive={chatActive}
+        hasDoc={Boolean(doc)}
+        onReset={reset}
+        onToggleHistory={() => setHistoryOpen((v) => !v)}
+      />
+
+      <HistorySidebar
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        chats={chats}
+        activeChatId={chatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={reset}
+        onDeleteChat={handleDeleteChat}
+      />
 
       <main className="flex-1 min-h-0">
         <ChatPanel
