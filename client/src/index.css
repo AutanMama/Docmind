@@ -20,4 +20,11 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  /* The mobile sidebar drawer uses `translateX` to slide off-screen while
+     staying `position: fixed` (needed for the slide-in animation) — some
+     browsers still count that off-screen geometry toward the page's
+     horizontal scroll area even though nothing is visibly there. Clip it
+     here rather than on html/body's overflow-y, which pull-to-refresh
+     depends on. */
+  overflow-x: hidden;
 }
