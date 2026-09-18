@@ -4,9 +4,11 @@ import BrandMark from "./BrandMark";
 export default function Header({ onToggleHistory }) {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface)] px-4 md:px-6 py-2.5 md:py-4 flex items-center gap-2 md:gap-3">
+      {/* Desktop uses hover-reveal arrows on the sidebar edge instead — this
+          toggle is only needed on mobile where there's no hover concept. */}
       <button
         onClick={onToggleHistory}
-        className="p-1.5 -ml-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-colors"
+        className="md:hidden p-1.5 -ml-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-colors"
         aria-label="Toggle chat history"
       >
         <Menu size={19} />

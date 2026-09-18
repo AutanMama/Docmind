@@ -17,7 +17,9 @@ function newChatId() {
 export default function App() {
   const [chatId, setChatId] = useState(newChatId);
   const [chats, setChats] = useState(getAllChats);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // Open by default on desktop (like a normal app sidebar), closed by
+  // default on mobile (where it's a toggled overlay instead).
+  const [historyOpen, setHistoryOpen] = useState(() => window.innerWidth >= 768);
 
   const [doc, setDoc] = useState(null); // { docId, fileName, chunkCount }
   const [uploading, setUploading] = useState(false);
@@ -157,6 +159,7 @@ export default function App() {
         <HistorySidebar
           open={historyOpen}
           onClose={() => setHistoryOpen(false)}
+          onOpen={() => setHistoryOpen(true)}
           chats={chats}
           activeChatId={chatId}
           onSelectChat={handleSelectChat}
