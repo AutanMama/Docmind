@@ -124,12 +124,20 @@ export default function App() {
     }
   };
 
+  // On mobile the sidebar is a full overlay, so picking something from it
+  // should close it out of the way. On desktop it's a permanent inline
+  // panel — closing it after every click would be jarring and just leaves
+  // people wondering where it went until they refresh.
+  const closeHistoryOnMobile = () => {
+    if (window.innerWidth < 768) setHistoryOpen(false);
+  };
+
   const reset = () => {
     setChatId(newChatId());
     setDoc(null);
     setMessages([]);
     setUploadError("");
-    setHistoryOpen(false);
+    closeHistoryOnMobile();
   };
 
   const handleSelectChat = (id) => {
@@ -142,7 +150,7 @@ export default function App() {
     // general-chat mode. Reattach the PDF to make it grounded again.
     setDoc(null);
     setUploadError("");
-    setHistoryOpen(false);
+    closeHistoryOnMobile();
   };
 
   const handleDeleteChat = (id) => {
