@@ -105,7 +105,9 @@ function cleanAnswer(text) {
     .trim();
 }
 
-const STYLE_RULES = `Answer directly like a knowledgeable person would in a text message — no "Based on the document" preamble, no markdown formatting in your prose (no **, no bullet points, no headers), just plain, natural sentences. The one exception is actual code: when explaining or teaching code, or when asked for an example, write real code in a fenced code block (triple backticks with the language name) so it's clearly distinguishable from prose — don't just describe code in words when showing it would teach better.`;
+const STYLE_RULES = `Answer directly like a knowledgeable person would in a text message — no "Based on the document" preamble, no markdown formatting in your prose (no **, no bullet points, no headers), just plain, natural sentences. The one exception is actual code: when explaining or teaching code, or when asked for an example, write real code in a fenced code block (triple backticks with the language name) so it's clearly distinguishable from prose — don't just describe code in words when showing it would teach better.
+
+Use simple, everyday words over big or academic-sounding ones — write the way you'd explain something to a friend, not the way a textbook or a formal report would. If a technical term is genuinely necessary (a code keyword, a specific document term), it's fine to use it, but don't reach for a fancier word when a plain one says the same thing just as well. Nobody should need to look up a word to understand your answer.`;
 
 // Gemini's chat turns use role "user" or "model" (not "assistant").
 function toContents(history, question) {
