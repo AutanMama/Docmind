@@ -2,7 +2,11 @@
 // swap for SQLite/Postgres if this ever needs to persist across restarts.
 const documents = new Map();
 
-export function chunkText(text, chunkSize = 900, overlap = 150) {
+// Larger chunks mean fewer embedding API calls per document — important
+// since Gemini's free embedding tier caps out at 100 requests/minute, and a
+// 90+ page PDF at the old 900-char chunk size could need 150+ calls on its
+// own, blowing through that quota before the upload even finishes.
+export function chunkText(text, chunkSize = 3000, overlap = 300) {
   const clean = text.replace(/\s+/g, " ").trim();
   const chunks = [];
   let start = 0;

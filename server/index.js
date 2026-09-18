@@ -10,6 +10,18 @@ import { chunkText, saveDocument, getDocument, topMatches, FULL_TEXT_THRESHOLD }
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
+// Provider errors (Gemini, etc.) come back as long raw JSON blobs meant for
+// developers, not end users. Log the real thing server-side, but only ever
+// show people a short, human sentence.
+function friendlyError(err) {
+  const msg = String(err.message || "");
+  if (err.status === 429 || /quota|rate limit/i.test(msg)) {
+    return "This document is large and hit a temporary rate limit. Please try uploading it again in a minute.";
+  }
+  if (err.status === 400) return "That file couldn't be read as a PDF — please check it's not corrupted.";
+  return "Something went wrong processing that document. Please try again.";
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -43,7 +55,7 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     res.json({ docId, fileName: req.file.originalname, chunkCount: chunks.length });
   } catch (err) {
     console.error("[upload] failed:", err);
-    res.status(500).json({ error: `Failed to process document: ${err.message}` });
+    res.status(500).json({ error: friendlyError(err) });
   }
 });
 
@@ -73,8 +85,8 @@ app.post("/api/ask", async (req, res) => {
 
     res.json({ answer, sources: matches.map((m) => ({ text: m.text, score: m.score })) });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to answer question" });
+    console.error("[ask] failed:", err);
+    res.status(500).json({ error: friendlyError(err) });
   }
 });
 

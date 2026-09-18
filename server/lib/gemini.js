@@ -22,15 +22,32 @@ const GENERATION_CONFIG = { thinkingConfig: { thinkingBudget: 0 } };
 // a chat gets long.
 const MAX_HISTORY_TURNS = 12;
 
-export async function embedText(text) {
-  const result = await embeddingModel.embedContent(text);
-  return result.embedding.values;
+// Google's free embedding tier caps at 100 requests/minute. On a 429, it
+// tells us how long to wait before retrying — honor that instead of just
+// failing, so a large document succeeds (a bit slower) rather than erroring
+// out the moment it brushes the quota.
+function retryDelayMs(err, attempt) {
+  const match = String(err.message || "").match(/retry in ([\d.]+)s/i);
+  if (match) return Math.ceil(parseFloat(match[1]) * 1000) + 250;
+  return 1000 * 2 ** attempt; // fallback exponential backoff
 }
 
-// Large documents (a 90+ page PDF, say) can chunk into 150+ pieces — calling
-// the embedding API one at a time for each would take minutes and is likely
-// to time out before it finishes. Run a bounded number in parallel instead.
-const EMBED_CONCURRENCY = 8;
+export async function embedText(text, attempt = 0) {
+  try {
+    const result = await embeddingModel.embedContent(text);
+    return result.embedding.values;
+  } catch (err) {
+    if (err.status === 429 && attempt < 5) {
+      await new Promise((r) => setTimeout(r, retryDelayMs(err, attempt)));
+      return embedText(text, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+// Keep concurrency modest — bursting many requests at once is what tips a
+// large document over the per-minute quota in the first place.
+const EMBED_CONCURRENCY = 4;
 
 export async function embedBatch(texts) {
   const vectors = new Array(texts.length);
