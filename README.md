@@ -9,9 +9,13 @@ Upload a PDF, ask questions about it, get answers grounded in the document — a
 3. A question is embedded the same way; the chunks with the closest cosine similarity are pulled as context.
 4. `gemini-1.5-flash` answers using only those chunks — it's told to say "I don't know" if the document doesn't cover it.
 
+## The reading room
+
+The client is designed as a reading room rather than a chat window: answers are typeset as pages in a reading serif, and when the server answers from retrieved passages, those passages appear in the margin, highlighted, with their match score. Design decisions are in [client/BRAND.md](client/BRAND.md).
+
 ## Stack
 
-- **Client**: React + Vite, Tailwind CSS v4
+- **Client**: React + Vite, Tailwind CSS v4, Literata and IBM Plex
 - **Server**: Express, `pdf-parse`, `@google/generative-ai`
 - **Storage**: in-memory (resets on restart — this is a demo, not a production document store)
 
