@@ -1,6 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
+import '@fontsource-variable/literata'
+import '@fontsource-variable/ibm-plex-sans'
+import '@fontsource/ibm-plex-mono/400.css'
+import '@fontsource/ibm-plex-mono/500.css'
+import './styles/index.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(

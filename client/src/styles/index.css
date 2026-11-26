@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+/* Brand tokens. Components use these names only; see BRAND.md. */
+@theme {
+  --color-desk: #e9e3d6;
+  --color-paper: #f3efe6;
+  --color-page: #fffdf8;
+  --color-line: #ded6c6;
+  --color-ink: #1c2230;
+  --color-muted: #5b6170;
+
+  --color-blue: #1f3f6e;
+  --color-blue-hover: #183257;
+  --color-blue-soft: #e6ecf5;
+  --color-highlight: #f8de6b;
+  --color-pencil: #a63d24;
+
+  --font-serif: 'Literata Variable', ui-serif, Georgia, serif;
+  --font-sans: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --shadow-page: 0 1px 0 rgb(28 34 48 / 0.04), 0 10px 30px -18px rgb(28 34 48 / 0.35);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-paper font-sans text-ink antialiased;
+  /* The mobile shelf slides off-screen with translateX; clip it so it never adds sideways scroll. */
+  overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+/* A highlighter stroke behind text, slightly short of the line height like a real marker. */
+.marker {
+  background: linear-gradient(transparent 38%, var(--color-highlight) 38%, var(--color-highlight) 90%, transparent 90%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 0.15em;
+}
+
+/* Faint ruled lines with a red margin, like a sheet of exam paper. */
+.ruled {
+  background-image:
+    linear-gradient(to right, transparent 2.25rem, rgb(166 61 36 / 0.18) 2.25rem, rgb(166 61 36 / 0.18) calc(2.25rem + 1px), transparent calc(2.25rem + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(2rem - 1px), rgb(31 63 110 / 0.07) calc(2rem - 1px), rgb(31 63 110 / 0.07) 2rem);
+}
+
+/* Just the red margin line, for pages that carry text. */
+.margin-rule {
+  background-image: linear-gradient(to right, transparent 2.25rem, rgb(166 61 36 / 0.22) 2.25rem, rgb(166 61 36 / 0.22) calc(2.25rem + 1px), transparent calc(2.25rem + 1px));
+}
+
+@keyframes sweep {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  50% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  50.1% {
+    transform-origin: right;
+  }
+  100% {
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.animate-sweep {
+  animation: sweep 1.6s ease-in-out infinite;
+}
+.animate-rise {
+  animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sweep,
+  .animate-rise {
+    animation: none;
+  }
+}
