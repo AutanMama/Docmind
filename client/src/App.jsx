@@ -1,195 +1,76 @@
-import { useEffect, useRef, useState } from "react";
-import Header from "./components/Header";
-import ChatPanel from "./components/ChatPanel";
-import HistorySidebar from "./components/HistorySidebar";
-import { getAllChats, saveChat, deleteChat } from "./utils/chatStorage";
+import { useRef, useState } from 'react'
+import Header from './components/layout/Header'
+import Shelf from './components/layout/Shelf'
+import Desk from './components/reading/Desk'
+import Conversation from './components/reading/Conversation'
+import Composer from './components/reading/Composer'
+import useReadingRoom from './hooks/useReadingRoom'
 
-// In local dev this is empty and requests go through Vite's proxy (see
-// vite.config.js) to localhost:5051. In production, set VITE_API_URL to
-// the deployed backend's URL — client and server are separate deployments
-// with no proxy between them.
-const API_URL = import.meta.env.VITE_API_URL || "";
-
-function newChatId() {
-  return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
-}
+const isPhone = () => window.innerWidth < 768
 
 export default function App() {
-  const [chatId, setChatId] = useState(newChatId);
-  const [chats, setChats] = useState(getAllChats);
-  // Open by default on desktop (like a normal app sidebar), closed by
-  // default on mobile (where it's a toggled overlay instead).
-  const [historyOpen, setHistoryOpen] = useState(() => window.innerWidth >= 768);
+  const room = useReadingRoom()
+  const [question, setQuestion] = useState('')
+  // The shelf is open by default on desktop, and a slide-over drawer on phones.
+  const [shelfOpen, setShelfOpen] = useState(() => !isPhone())
+  const inputRef = useRef(null)
 
-  const [doc, setDoc] = useState(null); // { docId, fileName, chunkCount }
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-  const [messages, setMessages] = useState([]); // { role, text, displayText?, typing? }
-  const [question, setQuestion] = useState("");
-  const [asking, setAsking] = useState(false);
-  const fileInputRef = useRef(null);
+  const closeShelfOnPhone = () => {
+    if (isPhone()) setShelfOpen(false)
+  }
 
-  // Reveals the most recent assistant message a few characters at a time so
-  // it reads like it's being typed, instead of the full answer appearing
-  // all at once after the request resolves.
-  useEffect(() => {
-    const last = messages[messages.length - 1];
-    if (!last || last.role !== "assistant" || !last.typing) return;
+  function send() {
+    if (!question.trim() || room.asking) return
+    room.ask(question)
+    setQuestion('')
+  }
 
-    const interval = setInterval(() => {
-      setMessages((prev) => {
-        const msgs = [...prev];
-        const target = msgs[msgs.length - 1];
-        if (!target || !target.typing) return prev;
-
-        const nextLength = Math.min(target.displayText.length + 3, target.text.length);
-        const done = nextLength >= target.text.length;
-        msgs[msgs.length - 1] = {
-          ...target,
-          displayText: target.text.slice(0, nextLength),
-          typing: !done,
-        };
-        return msgs;
-      });
-    }, 12);
-
-    return () => clearInterval(interval);
-  }, [messages]);
-
-  // Persist this conversation to localStorage any time it changes, so it
-  // shows up in the history sidebar and survives a page refresh.
-  useEffect(() => {
-    if (messages.length === 0) return;
-    saveChat(chatId, messages, doc?.fileName);
-    setChats(getAllChats());
-  }, [messages, chatId, doc?.fileName]);
-
-  const addTypedMessage = (text, isError = false) => {
-    setMessages((m) => [...m, { role: "assistant", text, displayText: "", typing: true, isError }]);
-  };
-
-  const handleFile = async (file) => {
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      setUploadError("Please upload a PDF file.");
-      return;
-    }
-    setUploading(true);
-    setUploadError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(`${API_URL}/api/upload`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-
-      setDoc(data);
-      addTypedMessage(`I've read "${data.fileName}" (${data.chunkCount} sections). Ask me anything about it.`);
-    } catch (err) {
-      setUploadError(err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleAsk = async (e) => {
-    e.preventDefault();
-    if (!question.trim() || asking) return;
-
-    const q = question.trim();
-    setMessages((m) => [...m, { role: "user", text: q, displayText: q }]);
-    setQuestion("");
-    setAsking(true);
-
-    try {
-      // Send prior turns along so the model has conversational memory
-      // (e.g. "are you sure?" needs to know what it's referring back to).
-      // Failed exchanges are excluded — otherwise a network hiccup shows up
-      // in the model's memory as a real reply, and it starts reacting to
-      // "Error: Failed to fetch" as if it were something you actually said.
-      const history = messages.filter((m) => !m.isError).map((m) => ({ role: m.role, text: m.text }));
-      const res = await fetch(`${API_URL}/api/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docId: doc?.docId, question: q, history }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
-      addTypedMessage(data.answer);
-    } catch (err) {
-      addTypedMessage(`Sorry, that didn't go through: ${err.message}. Try sending it again.`, true);
-    } finally {
-      setAsking(false);
-    }
-  };
-
-  // On mobile the sidebar is a full overlay, so picking something from it
-  // should close it out of the way. On desktop it's a permanent inline
-  // panel — closing it after every click would be jarring and just leaves
-  // people wondering where it went until they refresh.
-  const closeHistoryOnMobile = () => {
-    if (window.innerWidth < 768) setHistoryOpen(false);
-  };
-
-  const reset = () => {
-    setChatId(newChatId());
-    setDoc(null);
-    setMessages([]);
-    setUploadError("");
-    closeHistoryOnMobile();
-  };
-
-  const handleSelectChat = (id) => {
-    const chat = chats.find((c) => c.id === id);
-    if (!chat) return;
-    setChatId(id);
-    setMessages(chat.messages.map((m) => ({ ...m, displayText: m.text, typing: false })));
-    // The original document isn't recoverable after a server restart (it's
-    // only kept in memory) — resuming here continues the conversation in
-    // general-chat mode. Reattach the PDF to make it grounded again.
-    setDoc(null);
-    setUploadError("");
-    closeHistoryOnMobile();
-  };
-
-  const handleDeleteChat = (id) => {
-    deleteChat(id);
-    setChats(getAllChats());
-    if (id === chatId) reset();
-  };
+  function applyPrompt(text) {
+    setQuestion(text)
+    inputRef.current?.focus()
+  }
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden bg-[var(--bg)]">
-      <Header onToggleHistory={() => setHistoryOpen((v) => !v)} />
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <Header doc={room.doc} onToggleShelf={() => setShelfOpen((o) => !o)} />
 
-      <div className="flex-1 flex min-h-0">
-        <HistorySidebar
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          onOpen={() => setHistoryOpen(true)}
-          chats={chats}
-          activeChatId={chatId}
-          onSelectChat={handleSelectChat}
-          onNewChat={reset}
-          onDeleteChat={handleDeleteChat}
+      <div className="flex min-h-0 flex-1">
+        <Shelf
+          open={shelfOpen}
+          onClose={() => setShelfOpen(false)}
+          activeId={room.chatId}
+          onNew={() => {
+            room.startNew()
+            closeShelfOnPhone()
+          }}
+          onOpen={(id) => {
+            room.open(id)
+            closeShelfOnPhone()
+          }}
+          onDelete={room.remove}
         />
 
-        <main className="flex-1 min-h-0">
-          <ChatPanel
-            doc={doc}
-            messages={messages}
-            asking={asking}
-            uploading={uploading}
-            uploadError={uploadError}
-            question={question}
-            setQuestion={setQuestion}
-            onAsk={handleAsk}
-            onFileSelect={handleFile}
-            fileInputRef={fileInputRef}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {room.messages.length === 0 ? (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <Desk onAttach={room.attach} onPrompt={applyPrompt} uploading={room.uploading} />
+            </div>
+          ) : (
+            <Conversation messages={room.messages} asking={room.asking} onPrompt={applyPrompt} />
+          )}
+          <Composer
+            value={question}
+            onChange={setQuestion}
+            onSubmit={send}
+            onAttach={room.attach}
+            asking={room.asking}
+            uploading={room.uploading}
+            uploadError={room.uploadError}
+            hasDoc={Boolean(room.doc)}
+            inputRef={inputRef}
           />
         </main>
       </div>
     </div>
-  );
+  )
 }
